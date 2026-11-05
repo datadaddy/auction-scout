@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14532d">
+<title>Auction Scout</title>
+<style>
+  :root {
+    --bg: #f6f7f4; --card: #fff; --ink: #1c1f1a; --muted: #6b7065; --line: #e2e4dd;
+    --green: #15803d; --gw: #0b5cab; --sa: #c8102e; --ebay: #3665f3; --danger: #b42318;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111410; --card: #1b1f19; --ink: #e9ece4; --muted: #9aa092; --line: #2c3229; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  header { position: sticky; top: 0; z-index: 2; background: var(--green); color: #fff; padding: 14px 16px 12px; padding-top: max(14px, env(safe-area-inset-top)); }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 2px 0 0; font-size: 13px; opacity: .85; }
+  main { padding: 12px; max-width: 560px; margin: 0 auto; padding-bottom: 40px; }
+
+  .add { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
+  .add-row { display: flex; gap: 8px; }
+  input { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; min-width: 0; }
+  #kw { flex: 1; }
+  #val { width: 92px; }
+  button { font: inherit; cursor: pointer; border: 0; border-radius: 10px; }
+  #addBtn { background: var(--green); color: #fff; padding: 0 16px; font-weight: 600; }
+
+  .filter { width: 100%; margin-bottom: 12px; }
+  .count { font-size: 13px; color: var(--muted); margin: 0 4px 8px; }
+
+  .item { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 10px; }
+  .item-top { display: flex; align-items: flex-start; gap: 8px; }
+  .item-name { flex: 1; font-weight: 700; font-size: 17px; word-break: break-word; }
+  .item-val { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .item-val b { color: var(--green); }
+  .del { background: none; color: var(--danger); font-size: 22px; line-height: 1; padding: 2px 6px; }
+  .links { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .links a { display: block; text-align: center; text-decoration: none; color: #fff; font-size: 14px; font-weight: 600; padding: 10px 4px; border-radius: 10px; }
+  .gw { background: var(--gw); } .sa { background: var(--sa); } .eb { background: var(--ebay); }
+  .lookup-title { font-weight: 700; margin-bottom: 8px; }
+  #paste { flex: 1; }
+  .ghost { background: var(--bg); color: inherit; border: 1px solid var(--line); padding: 0 14px; }
+  .query { width: 100%; margin-top: 4px; }
+  .links.two { grid-template-columns: 1fr 1fr; }
+  .eb2 { background: #f5af02; color: #1c1f1a !important; }
+  .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
+
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-top: 18px; }
+  summary { font-weight: 600; cursor: pointer; }
+  .set { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; font-size: 14px; }
+  .set input { width: 90px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .wide { width: 100%; margin-top: 10px; padding: 11px; background: var(--bg); border: 1px solid var(--line); color: inherit; }
+  textarea { width: 100%; height: 110px; margin-top: 8px; font: 13px ui-monospace, monospace; background: var(--bg); color: inherit; border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Auction Scout</h1>
+  <p>Your watch list → one tap to Goodwill, Salvation Army, eBay sold</p>
+</header>
+
+<main>
+  <section class="add lookup">
+    <div class="lookup-title">Look up a listing on eBay</div>
+    <div class="add-row">
+      <input id="paste" placeholder="Paste the listing title" aria-label="Listing title">
+      <button id="pasteBtn" type="button" class="ghost">Paste</button>
+    </div>
+    <div id="lookupOut" hidden>
+      <label class="hint" for="query">Search words (edit if needed)</label>
+      <input id="query" class="query" aria-label="eBay search words">
+      <div class="links two">
+        <a class="eb" id="lkSold" target="_blank" rel="noopener">Sold prices</a>
+        <a class="eb2" id="lkLive" target="_blank" rel="noopener">Ending soonest</a>
+      </div>
+    </div>
+  </section>
+
+  <form class="add" id="addForm" autocomplete="off">
+    <div class="add-row">
+      <input id="kw" placeholder="Brand or keyword" aria-label="Brand or keyword" required>
+      <input id="val" type="number" inputmode="decimal" min="0" step="1" placeholder="$ value" aria-label="Your resale value (optional)">
+      <button id="addBtn" type="submit">Add</button>
+    </div>
+  </form>
+
+  <input class="filter" id="filter" type="search" placeholder="Filter your list…" aria-label="Filter watch list">
+  <div class="count" id="count"></div>
+  <div id="list"></div>
+
+  <details>
+    <summary>Settings</summary>
+    <div class="set"><label for="minGap">Minimum gap ($)</label><input id="minGap" type="number" inputmode="decimal" min="0"></div>
+    <div class="set"><label for="gwShip">Goodwill ship + fees estimate ($)</label><input id="gwShip" type="number" inputmode="decimal" min="0"></div>
+    <div class="set"><label for="saShip">Salvation Army ship + fees estimate ($)</label><input id="saShip" type="number" inputmode="decimal" min="0"></div>
+    <p class="hint">"Bid up to" = your value − minimum gap − that site's ship + fees estimate. The estimates are yours to set; check a real checkout on each site and update them.</p>
+
+    <button class="wide" type="button" id="exportBtn">Back up my list (copy)</button>
+    <button class="wide" type="button" id="importBtn">Restore a backup (paste)</button>
+    <textarea id="io" hidden placeholder="Paste a backup here, then tap Restore again"></textarea>
+    <p class="hint">Your list lives only on this phone's browser. Back it up now and then.</p>
+  </details>
+</main>
+
+<script>
+const LS_ITEMS = "auctionScout.items";
+const LS_SETTINGS = "auctionScout.settings";
+
+const DEFAULT_ITEMS = [
+  "Maui Jim", "Oakley", "Ray Ban", "Costa Del Mar", "Persol", "Oliver Peoples",
+  "Tom Ford sunglasses", "Prada sunglasses", "Gucci sunglasses", "Cartier glasses"
+].map(name => ({ name, value: null }));
+const DEFAULT_SETTINGS = { minGap: 40, gwShip: 10, saShip: 12 };
+
+function load(key, fallback) {
+  try { const v = JSON.parse(localStorage.getItem(key)); return v ?? fallback; }
+  catch { return fallback; }
+}
+let items = load(LS_ITEMS, DEFAULT_ITEMS);
+let settings = { ...DEFAULT_SETTINGS, ...load(LS_SETTINGS, {}) };
+const saveItems = () => localStorage.setItem(LS_ITEMS, JSON.stringify(items));
+const saveSettings = () => localStorage.setItem(LS_SETTINGS, JSON.stringify(settings));
+
+// Goodwill's search treats "ray-ban" as loose word matches, so hyphens become spaces there.
+const goodwillUrl = q =>
+  "https://shopgoodwill.com/categories/listing?st=" + encodeURIComponent(q.replace(/-/g, " ")) +
+  "&sg=&c=&s=&lp=0&hp=999999&sbn=&spo=false&snpo=false&socs=false&sd=false&sca=false&caed=&cadb=7" +
+  "&scs=false&sis=false&col=1&p=1&ps=40&desc=false&ss=0&UseBuyerPrefs=true&sus=false&cln=1" +
+  "&catIds=&pn=&wc=false&mci=false&hmt=false&layout=grid&ihp=true";
+// SortFilterOptions=0 is "Ending Soon" on shopthesalvationarmy.com.
+const salvationUrl = q =>
+  "https://shopthesalvationarmy.com/Browse?FullTextQuery=" + encodeURIComponent(q) +
+  "&StatusFilter=active_only&SortFilterOptions=0&ViewStyle=grid";
+// Sold + completed, used condition, most recently ended first.
+const ebaySoldUrl = q =>
+  "https://www.ebay.com/sch/i.html?_nkw=" + encodeURIComponent(q) +
+  "&LH_Sold=1&LH_Complete=1&LH_ItemCondition=3000&_sop=13";
+
+// Active listings, used condition, ending soonest first.
+const ebayLiveUrl = q =>
+  "https://www.ebay.com/sch/i.html?_nkw=" + encodeURIComponent(q) +
+  "&LH_ItemCondition=3000&_sop=1";
+
+// Thrift titles carry lot codes like [M2145] and frame sizes like 51 22 145 / 51□21 that
+// make eBay return nothing. Strip those, then keep the first 6 words so the search isn't too narrow.
+function titleToQuery(title) {
+  return title
+    // Safari page titles: "Item | ShopGoodwill.com" and "Online Thrift Store | ShopTheSalvationArmy - Item"
+    .replace(/\s*\|\s*shopgoodwill\.com\s*$/i, " ")
+    .replace(/^\s*online thrift store\s*\|\s*shopthesalvationarmy\s*-\s*/i, " ")
+    .replace(/\[[^\]]*\]/g, " ")                                   // [M2145] lot codes
+    .replace(/\b\d{2,3}\s*[-□xX\s]\s*\d{2}(?:\s*[-□xX\s]\s*\d{3})?\b/g, " ") // 51-22-145, 51□21
+    .replace(/\b\d+\s*mm\b/gi, " ")                                // 58mm
+    .replace(/[|•,;:!*"()]/g, " ")
+    .replace(/\bw\//gi, " ")
+    .replace(/\b(?:as is|lot of|pre-owned|preowned|used|authentic|nice|great)\b/gi, " ")
+    .split(/\s+/).filter(w => /[a-z0-9]/i.test(w)).slice(0, 6).join(" ");
+}
+
+function updateLookup() {
+  const q = document.getElementById("query").value.trim();
+  document.getElementById("lkSold").href = ebaySoldUrl(q);
+  document.getElementById("lkLive").href = ebayLiveUrl(q);
+}
+
+const money = n => "$" + Math.round(n);
+const esc = s => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function render() {
+  const f = document.getElementById("filter").value.trim().toLowerCase();
+  const shown = items
+    .map((it, i) => ({ ...it, i }))
+    .filter(it => !f || it.name.toLowerCase().includes(f));
+  document.getElementById("count").textContent =
+    items.length + " on your list" + (f ? " · " + shown.length + " shown" : "");
+
+  const list = document.getElementById("list");
+  if (!shown.length) {
+    list.innerHTML = '<div class="empty">' + (items.length ? "Nothing matches that filter." : "Your list is empty. Add a brand above.") + "</div>";
+    return;
+  }
+  list.innerHTML = shown.map(it => {
+    let valLine = '<div class="item-val">No value set — add one to see a bid limit</div>';
+    if (it.value != null) {
+      const gw = it.value - settings.minGap - settings.gwShip;
+      const sa = it.value - settings.minGap - settings.saShip;
+      valLine = '<div class="item-val">Value ' + money(it.value) +
+        " · bid up to <b>" + (gw > 0 ? money(gw) : "—") + "</b> Goodwill, <b>" +
+        (sa > 0 ? money(sa) : "—") + "</b> SA</div>";
+    }
+    const q = it.name;
+    return '<div class="item">' +
+      '<div class="item-top"><div><div class="item-name">' + esc(q) + "</div>" + valLine + "</div>" +
+      '<span style="flex:1"></span>' +
+      '<button class="del" data-i="' + it.i + '" aria-label="Remove ' + esc(q) + '">×</button></div>' +
+      '<div class="links">' +
+      '<a class="gw" target="_blank" rel="noopener" href="' + goodwillUrl(q) + '">Goodwill</a>' +
+      '<a class="sa" target="_blank" rel="noopener" href="' + salvationUrl(q) + '">Salv. Army</a>' +
+      '<a class="eb" target="_blank" rel="noopener" href="' + ebaySoldUrl(q) + '">eBay sold</a>' +
+      "</div></div>";
+  }).join("");
+}
+
+document.getElementById("addForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const kw = document.getElementById("kw");
+  const val = document.getElementById("val");
+  const name = kw.value.trim();
+  if (!name) return;
+  const value = val.value === "" ? null : Number(val.value);
+  const existing = items.find(it => it.name.toLowerCase() === name.toLowerCase());
+  if (existing) existing.value = value ?? existing.value;
+  else items.unshift({ name, value });
+  saveItems();
+  kw.value = ""; val.value = "";
+  render();
+  kw.focus();
+});
+
+document.getElementById("list").addEventListener("click", e => {
+  const btn = e.target.closest(".del");
+  if (!btn) return;
+  const it = items[Number(btn.dataset.i)];
+  if (!confirm('Remove "' + it.name + '" from your list?')) return;
+  items.splice(Number(btn.dataset.i), 1);
+  saveItems();
+  render();
+});
+
+document.getElementById("filter").addEventListener("input", render);
+
+function setPasted(text) {
+  const out = document.getElementById("lookupOut");
+  const q = titleToQuery(text);
+  out.hidden = !q;
+  document.getElementById("query").value = q;
+  updateLookup();
+}
+document.getElementById("paste").addEventListener("input", e => setPasted(e.target.value));
+document.getElementById("query").addEventListener("input", updateLookup);
+document.getElementById("pasteBtn").addEventListener("click", async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    document.getElementById("paste").value = text;
+    setPasted(text);
+  } catch { document.getElementById("paste").focus(); }
+});
+
+for (const key of ["minGap", "gwShip", "saShip"]) {
+  const el = document.getElementById(key);
+  el.value = settings[key];
+  el.addEventListener("change", () => {
+    const n = Number(el.value);
+    if (el.value === "" || !Number.isFinite(n) || n < 0) { el.value = settings[key]; return; }
+    settings[key] = n;
+    saveSettings();
+    render();
+  });
+}
+
+document.getElementById("exportBtn").addEventListener("click", async () => {
+  const io = document.getElementById("io");
+  const text = JSON.stringify({ items, settings });
+  io.hidden = false; io.value = text;
+  try { await navigator.clipboard.writeText(text); alert("Copied. Paste it into a note to keep it safe."); }
+  catch { io.select(); alert("Copy the text in the box below and keep it in a note."); }
+});
+
+document.getElementById("importBtn").addEventListener("click", () => {
+  const io = document.getElementById("io");
+  if (io.hidden || !io.value.trim()) { io.hidden = false; io.value = ""; io.focus(); return; }
+  try {
+    const data = JSON.parse(io.value);
+    if (!Array.isArray(data.items) || !data.items.every(it => typeof it.name === "string")) throw 0;
+    if (!confirm("Replace your current list with this backup (" + data.items.length + " items)?")) return;
+    items = data.items.map(it => ({ name: it.name, value: typeof it.value === "number" ? it.value : null }));
+    settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
+    saveItems(); saveSettings();
+    for (const key of ["minGap", "gwShip", "saShip"]) document.getElementById(key).value = settings[key];
+    io.hidden = true; io.value = "";
+    render();
+  } catch { alert("That doesn't look like an Auction Scout backup."); }
+});
+
+render();
+
+// iPhone Shortcut hands us the listing's page title: ?t=<title>&go=sold|live
+// go jumps straight to eBay; without it the title is just filled into the lookup box.
+{
+  const params = new URLSearchParams(location.search);
+  const shared = params.get("t");
+  if (shared) {
+    document.getElementById("paste").value = shared;
+    setPasted(shared);
+    history.replaceState(null, "", location.pathname);
+    const q = titleToQuery(shared);
+    const go = params.get("go");
+    if (q && go === "sold") location.href = ebaySoldUrl(q);
+    else if (q && go === "live") location.href = ebayLiveUrl(q);
+  }
+}
+</script>
+</body>
+</html>
