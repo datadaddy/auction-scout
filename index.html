@@ -46,6 +46,12 @@
   .query { width: 100%; margin-top: 4px; }
   .links.two { grid-template-columns: 1fr 1fr; }
   .eb2 { background: #f5af02; color: #1c1f1a !important; }
+  .code { display: flex; align-items: center; gap: 6px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .code:first-child { border-top: 0; }
+  .code-name { flex: 1; min-width: 0; font-weight: 600; }
+  .code-name small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+  .code a { text-decoration: none; color: #fff; font-size: 13px; font-weight: 600; padding: 8px 10px; border-radius: 9px; }
+  #codeAdd { background: var(--green); color: #fff; padding: 0 14px; font-weight: 600; }
   .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
 
   details { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-top: 18px; }
@@ -60,10 +66,21 @@
 <body>
 <header>
   <h1>Auction Scout</h1>
-  <p>Your watch list → one tap to Goodwill, Salvation Army, eBay sold</p>
+  <p>Coded sunglasses, your watch list, and eBay lookups — one tap each</p>
 </header>
 
 <main>
+  <section class="add">
+    <div class="lookup-title">Coded sunglasses</div>
+    <p class="hint" style="margin-top:0">Each search only brings up listings with a model code in the title (RB…, OO9…, MJ…). Ending soonest first.</p>
+    <div id="codes"></div>
+    <form class="add-row" id="codeForm" autocomplete="off" style="margin-top:10px">
+      <input id="codeLabel" placeholder="Name (Persol)" aria-label="Name for this code search" style="flex:1">
+      <input id="codeTerm" placeholder="Search (PO0)" aria-label="Code search words" required style="width:110px">
+      <button id="codeAdd" type="submit">Add</button>
+    </form>
+  </section>
+
   <section class="add lookup">
     <div class="lookup-title">Look up a listing on eBay</div>
     <div class="add-row">
@@ -295,7 +312,7 @@ for (const key of ["minGap", "gwShip", "saShip"]) {
 
 document.getElementById("exportBtn").addEventListener("click", async () => {
   const io = document.getElementById("io");
-  const text = JSON.stringify({ items, settings });
+  const text = JSON.stringify({ items, settings, codes });
   io.hidden = false; io.value = text;
   try { await navigator.clipboard.writeText(text); alert("Copied. Paste it into a note to keep it safe."); }
   catch { io.select(); alert("Copy the text in the box below and keep it in a note."); }
@@ -310,6 +327,11 @@ document.getElementById("importBtn").addEventListener("click", () => {
     if (!confirm("Replace your current list with this backup (" + data.items.length + " items)?")) return;
     items = data.items.map(it => ({ name: it.name, value: typeof it.value === "number" ? it.value : null }));
     settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
+    if (Array.isArray(data.codes)) {
+      codes = data.codes.filter(c => c && typeof c.term === "string")
+        .map(c => ({ label: typeof c.label === "string" ? c.label : "", term: c.term }));
+      saveCodes(); renderCodes();
+    }
     saveItems(); saveSettings();
     for (const key of ["minGap", "gwShip", "saShip"]) document.getElementById(key).value = settings[key];
     io.hidden = true; io.value = "";
@@ -318,6 +340,53 @@ document.getElementById("importBtn").addEventListener("click", () => {
 });
 
 render();
+
+// Code searches. Both sites match text inside words, so a code prefix like "OO9" finds
+// OO9102, OO9013… but a bare "OO" also hits "Good". Terms were checked on both sites 2026-11-05
+// unless marked untested.
+const LS_CODES = "auctionScout.codes";
+const DEFAULT_CODES = [
+  { label: "Ray-Ban", term: "RB sunglasses" },
+  { label: "Oakley", term: "OO9" },
+  { label: "Maui Jim + Marc Jacobs", term: "MJ sunglasses" },
+  { label: "Persol (untested)", term: "Persol PO" },
+  { label: "Gucci (untested)", term: "GG0" },
+  { label: "Tom Ford (untested)", term: "FT0" },
+  { label: "Oliver Peoples (untested)", term: "OV5" },
+];
+let codes = load(LS_CODES, DEFAULT_CODES);
+const saveCodes = () => localStorage.setItem(LS_CODES, JSON.stringify(codes));
+
+function renderCodes() {
+  const box = document.getElementById("codes");
+  if (!codes.length) { box.innerHTML = '<div class="hint">No code searches. Add one below.</div>'; return; }
+  box.innerHTML = codes.map((c, i) =>
+    '<div class="code"><div class="code-name">' + esc(c.label || c.term) + "<small>searches “" + esc(c.term) + "”</small></div>" +
+    '<a class="gw" target="_blank" rel="noopener" href="' + goodwillUrl(c.term) + '">Goodwill</a>' +
+    '<a class="sa" target="_blank" rel="noopener" href="' + salvationUrl(c.term) + '">SA</a>' +
+    '<button class="del" data-ci="' + i + '" aria-label="Remove ' + esc(c.label || c.term) + '">×</button></div>'
+  ).join("");
+}
+document.getElementById("codes").addEventListener("click", e => {
+  const btn = e.target.closest(".del");
+  if (!btn) return;
+  const c = codes[Number(btn.dataset.ci)];
+  if (!confirm('Remove the "' + (c.label || c.term) + '" search?')) return;
+  codes.splice(Number(btn.dataset.ci), 1);
+  saveCodes();
+  renderCodes();
+});
+document.getElementById("codeForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const term = document.getElementById("codeTerm").value.trim();
+  if (!term) return;
+  codes.push({ label: document.getElementById("codeLabel").value.trim(), term });
+  saveCodes();
+  document.getElementById("codeTerm").value = "";
+  document.getElementById("codeLabel").value = "";
+  renderCodes();
+});
+renderCodes();
 
 // iPhone Shortcut hands us the listing's page title: ?t=<title>&go=sold|live
 // go jumps straight to eBay; without it the title is just filled into the lookup box.
