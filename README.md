@@ -26,3 +26,18 @@ Build once in the **Shortcuts** app:
 For live listings ending soonest, duplicate the shortcut, name it **eBay ending soon**, and change `go=sold` to `go=live`.
 
 Use it in **Safari**: on a Goodwill or Salvation Army listing, tap Share and pick the shortcut. Leave out `go=...` to land in the app with the search words filled in so you can edit them first.
+
+## iPhone Shortcut: scan the code on a frame arm
+
+The iPhone reads engraved text far better than anything that runs in a web page. (A browser text reader was tested on a Maui Jim arm and read "MJ-502-23" as "TMI =8502-23".) So the iPhone does the reading and the app does the cleanup:
+
+1. New shortcut, named **Scan frame code**. Add it to your Home Screen if you like (ⓘ → Add to Home Screen).
+2. Add **Take Photo** (turn off Show Camera Preview only if you want it faster).
+3. Add **Extract Text from Image**, using the **Photo**.
+4. Add **URL Encode** (Encode), using the **Text from Image**.
+5. Add **URL**: `https://datadaddy.github.io/auction-scout/?t=` then insert the **URL Encoded Text**.
+6. Add **Open URLs**.
+
+You land in the app with the search words filled in, for example "MAUI MJ-502-23" becomes "Maui Jim MJ-502-23". Fix any misread characters, then tap **Sold prices**. To skip the check and go straight to eBay, add `go=sold&` after the `?`.
+
+No-Shortcut way: point the Camera at the code, tap the text (Live Text) icon, copy, then tap **Paste** in the app.

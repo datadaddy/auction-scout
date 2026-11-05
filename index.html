@@ -70,6 +70,7 @@
       <input id="paste" placeholder="Paste the listing title" aria-label="Listing title">
       <button id="pasteBtn" type="button" class="ghost">Paste</button>
     </div>
+    <p class="hint">Code on the frame arm? Point the iPhone Camera at it, tap the text icon, copy, then Paste here.</p>
     <div id="lookupOut" hidden>
       <label class="hint" for="query">Search words (edit if needed)</label>
       <input id="query" class="query" aria-label="eBay search words">
@@ -152,13 +153,43 @@ function titleToQuery(title) {
     // Safari page titles: "Item | ShopGoodwill.com" and "Online Thrift Store | ShopTheSalvationArmy - Item"
     .replace(/\s*\|\s*shopgoodwill\.com\s*$/i, " ")
     .replace(/^\s*online thrift store\s*\|\s*shopthesalvationarmy\s*-\s*/i, " ")
+    .replace(/\b(MJ|RB|RX|O[OX]|PO|OV|TF|FT|GG|S?V?PR)\s+(?=\d)/gi, "$1-") // "MJ 502-23" → "MJ-502-23"
     .replace(/\[[^\]]*\]/g, " ")                                   // [M2145] lot codes
-    .replace(/\b\d{2,3}\s*[-□xX\s]\s*\d{2}(?:\s*[-□xX\s]\s*\d{3})?\b/g, " ") // 51-22-145, 51□21
+    // 51-22-145, 51□21 — only when standalone, so model codes like MJ-502-23 survive
+    .replace(/(?<=^|\s)\d{2,3}\s*[-□xX\s]\s*\d{2}(?:\s*[-□xX\s]\s*\d{3})?(?=\s|$)/g, " ")
     .replace(/\b\d+\s*mm\b/gi, " ")                                // 58mm
     .replace(/[|•,;:!*"()]/g, " ")
     .replace(/\bw\//gi, " ")
     .replace(/\b(?:as is|lot of|pre-owned|preowned|used|authentic|nice|great)\b/gi, " ")
-    .split(/\s+/).filter(w => /[a-z0-9]/i.test(w)).slice(0, 6).join(" ");
+    .split(/\s+/)
+    .filter(w => /[a-z0-9]/i.test(w) && !/^[a-z]$/i.test(w))   // drop lone letters like a cut-off "M"
+    .slice(0, 6).join(" ")
+    .replace(/.+/, q => withBrand(q));
+}
+
+// Frame arms carry a model code but often not the full brand ("MAUI MJ-502-23").
+// If a known code prefix shows up and its brand isn't already in the words, put the brand first.
+const CODE_BRANDS = [
+  [/^MJ[-\s]?\d/i, "Maui Jim", /maui\s*jim/i],
+  [/^RB[-\s]?\d/i, "Ray-Ban", /ray[\s-]?ban/i],
+  [/^RX[-\s]?\d/i, "Ray-Ban", /ray[\s-]?ban/i],
+  [/^O[OX][-\s]?\d/i, "Oakley", /oakley/i],
+  [/^PO[-\s]?\d/i, "Persol", /persol/i],
+  [/^OV[-\s]?\d/i, "Oliver Peoples", /oliver/i],
+  [/^(?:TF|FT)[-\s]?\d/i, "Tom Ford", /tom\s*ford/i],
+  [/^GG[-\s]?\d/i, "Gucci", /gucci/i],
+  [/^(?:SPR|VPR|PR)[-\s]?\d/i, "Prada", /prada/i],
+];
+function withBrand(q) {
+  const words = q.split(" ");
+  for (const [code, brand, has] of CODE_BRANDS) {
+    if (words.some(w => code.test(w)) && !has.test(q)) {
+      // Drop a lone partial brand word like "MAUI" that the brand name replaces.
+      const first = brand.split(/[\s-]/)[0].toLowerCase();
+      return [brand, ...words.filter(w => w.toLowerCase() !== first)].slice(0, 6).join(" ");
+    }
+  }
+  return q;
 }
 
 function updateLookup() {
