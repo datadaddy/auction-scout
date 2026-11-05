@@ -73,6 +73,9 @@
   <section class="add">
     <div class="lookup-title">Coded sunglasses</div>
     <p class="hint" style="margin-top:0">Each search only brings up listings with a model code in the title (RB…, OO9…, MJ…). Ending soonest first.</p>
+    <div class="code"><div class="code-name">All sunglasses<small>coded or not, ending soonest</small></div>
+      <a class="gw" id="allGw" target="_blank" rel="noopener">Goodwill</a>
+      <a class="sa" id="allSa" target="_blank" rel="noopener">SA</a></div>
     <div id="codes"></div>
     <form class="add-row" id="codeForm" autocomplete="off" style="margin-top:10px">
       <input id="codeLabel" placeholder="Name (Persol)" aria-label="Name for this code search" style="flex:1">
@@ -357,6 +360,8 @@ const DEFAULT_CODES = [
 let codes = load(LS_CODES, DEFAULT_CODES);
 const saveCodes = () => localStorage.setItem(LS_CODES, JSON.stringify(codes));
 
+document.getElementById("allGw").href = goodwillUrl("sunglasses");
+document.getElementById("allSa").href = salvationUrl("sunglasses");
 function renderCodes() {
   const box = document.getElementById("codes");
   if (!codes.length) { box.innerHTML = '<div class="hint">No code searches. Add one below.</div>'; return; }
