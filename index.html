@@ -174,13 +174,13 @@ function titleToQuery(title) {
     .replace(/\s*\|\s*shopgoodwill\.com\s*$/i, " ")
     .replace(/^\s*online thrift store\s*\|\s*shopthesalvationarmy\s*-\s*/i, " ")
     .replace(/\b(MJ|RB|RX|O[OX]|PO|OV|TF|FT|GG|S?V?PR)\s+(?=\d)/gi, "$1-") // "MJ 502-23" → "MJ-502-23"
+    .replace(/\bw\/[^|]*/gi, " ")                                 // "w/ case, box" accessories, up to the next |
     .replace(/\[[^\]]*\]/g, " ")                                   // [M2145] lot codes
     // 51-22-145, 51□21 — only when standalone, so model codes like MJ-502-23 survive
     .replace(/(?<=^|\s)\d{2,3}\s*[-□xX\s]\s*\d{2}(?:\s*[-□xX\s]\s*\d{3})?(?=\s|$)/g, " ")
     .replace(/\b\d+\s*mm\b/gi, " ")                                // 58mm
     .replace(/[|•,;:!*"()]/g, " ")
-    .replace(/\bw\//gi, " ")
-    .replace(/\b(?:as is|lot of|pre-owned|preowned|used|authentic|nice|great)\b/gi, " ")
+    .replace(/\b(?:as is|lot of|pre-owned|preowned|used|authentic|nice|great|coa)\b/gi, " ")
     .split(/\s+/)
     .filter(w => /[a-z0-9]/i.test(w) && !/^[a-z]$/i.test(w))   // drop lone letters like a cut-off "M"
     .slice(0, 6).join(" ")
@@ -361,7 +361,9 @@ let codes = load(LS_CODES, DEFAULT_CODES);
 const saveCodes = () => localStorage.setItem(LS_CODES, JSON.stringify(codes));
 
 document.getElementById("allGw").href = goodwillUrl("sunglasses");
-document.getElementById("allSa").href = salvationUrl("sunglasses");
+// SA has a real Sunglasses category (Clothing › Accessories › Sunglasses & Eyewear › Sunglasses).
+document.getElementById("allSa").href = "https://shopthesalvationarmy.com/Browse/C160719-C466124145-C466124235-C467376525/" +
+  "Clothing-Shoes-Accessories-Accessories-Sunglasses-Eyewear-Sunglasses?StatusFilter=active_only&SortFilterOptions=0&ViewStyle=grid";
 function renderCodes() {
   const box = document.getElementById("codes");
   if (!codes.length) { box.innerHTML = '<div class="hint">No code searches. Add one below.</div>'; return; }

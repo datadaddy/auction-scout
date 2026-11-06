@@ -9,6 +9,24 @@ A one-page phone app for flipping thrift-auction finds.
 
 It never reads the auction sites or eBay itself. Every search is a link you tap. The watch list is kept only in your phone's browser (localStorage).
 
+## Computer: browser extension (Chrome or Edge)
+
+The `extension/` folder is an extension for Chrome or Edge. Open any ShopGoodwill or Salvation Army listing and a small **eBay lookup** panel appears in the bottom-left corner:
+
+- **Open eBay sold automatically** (on by default): a used sold-prices search for that listing opens in a background tab next to it, so you stay on the listing. It opens once per listing, so reloading doesn't open another.
+- **Sold** and **Ending soon** buttons open those eBay searches and switch to them. Edit the words first if the cleanup got them wrong; Enter runs Sold.
+- **×** hides the panel until the next listing.
+
+It reads only the title of the listing you have open, the same way the phone Shortcut does. It never browses either site or eBay on its own.
+
+Install once:
+
+1. Open `chrome://extensions` (Chrome) or `edge://extensions` (Edge).
+2. Turn on **Developer mode**.
+3. Click **Load unpacked** and pick the `extension` folder: `C:\Users\micha\Projects\auction-scout\extension`.
+
+After pulling an update, click the extension's reload ↻ button on that page.
+
 ## iPhone Shortcut (Share a listing → eBay)
 
 Live app: https://datadaddy.github.io/auction-scout/

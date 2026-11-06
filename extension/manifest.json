@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Auction Scout",
+  "version": "1.0",
+  "description": "On a ShopGoodwill or Salvation Army listing, search eBay sold and ending-soon for the same item.",
+  "permissions": ["storage"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://shopgoodwill.com/*", "https://www.shopgoodwill.com/*",
+                  "https://shopthesalvationarmy.com/*", "https://www.shopthesalvationarmy.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
